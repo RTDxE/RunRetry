@@ -1,0 +1,639 @@
+[gd_scene load_steps=18 format=2]
+
+[ext_resource path="res://objects/Player.tscn" type="PackedScene" id=1]
+[ext_resource path="res://fonts/Lato/Lato-Light.ttf" type="DynamicFontData" id=2]
+[ext_resource path="res://fonts/Lato/Lato-BlackItalic.ttf" type="DynamicFontData" id=3]
+[ext_resource path="res://art/circle.png" type="Texture" id=4]
+
+[sub_resource type="GDScript" id=1]
+resource_name = "TODO"
+script/source = "extends Node2D
+
+\"\"\"
+TODO:
+	1. +Enemies
+	2. +Score
+	3. +Die
+	4. Boosts
+	5. Start UI
+	6. Die panel
+	7. ?Scoreboard?
+	8. Yandex.API
+\"\"\"
+
+var enemy = preload(\"res://objects/enemy.tscn\")
+var spawn_time = 0.75
+var spawn_addict = 0.1
+var current_spawn_time = 0
+var free_enemies = []
+
+var bottom_right 
+var start = false
+var score = 0
+
+
+func _ready() -> void:
+	randomize()
+	update_score()
+	set_process(false)
+	get_tree().paused = false
+	YSDK.show_fullscreen_adv()
+
+
+func spawn_enemy() -> void:
+	var e
+	if free_enemies.size() > 0:
+		e = free_enemies[0]
+		free_enemies.remove(0)
+		e.randomize_object()
+		e.set_process(true)
+		e.passed = false
+	else:
+		e = enemy.instance()
+		e.player = $Player
+		add_child(e)
+	var top_left = $cam.global_position - get_viewport_rect().size / 2
+	bottom_right = $cam.global_position + get_viewport_rect().size / 2
+	e.global_position = Vector2(randi() % 824 + 128, top_left.y-300)
+
+
+func _process(delta: float) -> void:
+	if current_spawn_time > spawn_time:
+		current_spawn_time -= spawn_time
+		spawn_enemy()
+		spawn_time -= spawn_addict
+		spawn_addict *= 0.8
+	
+	current_spawn_time += delta
+
+
+func add_score() -> void:
+	score += 1
+	update_score()
+
+
+func update_score() -> void:
+	$UI.set_score(score)
+
+
+func enemy_free(obj) -> void:
+	free_enemies.append(obj)
+
+
+func start_game() -> void:
+	set_process(true)
+	$UI.start_game()
+
+func end_game() -> void:
+	set_process(false)
+	get_tree().paused = true
+	$UI.end_game(score)
+
+func restart_game() -> void:
+	get_tree().reload_current_scene()
+"
+
+[sub_resource type="GDScript" id=2]
+resource_name = "tracer"
+script/source = "extends Node2D
+
+#const SPAWN_TIME = 0.1
+#
+#var points = []
+#var current_spawn_time = 0
+#
+#onready var player = $\"../Player\"
+#
+#func _process(delta: float) -> void:
+#	current_spawn_time += delta
+#	if current_spawn_time >= SPAWN_TIME:
+#		points.append(player.position)
+#		if points.size() > 64:
+#			points.remove(0)
+#
+#	for i in points.size():
+#		points[i].y += 1000 * delta
+#
+#	update()
+
+
+#func _draw() -> void:
+#	if (points.size() > 1):
+#		for i in points.size() - 1:
+#			draw_circle(points[i], (i+1) / 2, Color(0, 0.69, 0.96))
+#			draw_line(points[i], points[i+1], Color(0, 0.69, 0.96), (i+1), true)
+#
+#		var pp = (player as Node2D).position + Vector2(0, -64).rotated(player.rotation)
+#		draw_circle(points[points.size() - 1], points.size() / 2, Color(0, 0.69, 0.96))
+#		draw_circle(pp, points.size() / 2, Color(0, 0.69, 0.96))
+#		draw_line(points[points.size() - 1], pp, Color(0, 0.69, 0.96), points.size(), true)
+
+"
+
+[sub_resource type="GDScript" id=4]
+script/source = "extends CanvasLayer
+
+
+func _ready() -> void:
+	pass
+
+func set_score(score: int) -> void:
+	$InGame/Score.text = str(score)
+
+func start_game() -> void:
+	$Start.hide()
+	$InGame.show()
+
+func end_game(score) -> void:
+	$InGame.hide()
+	$Die.show()
+	$Die/anim.play(\"show\")
+	$Die/Score.text = \"Score: \" + str(score)
+"
+
+[sub_resource type="DynamicFont" id=5]
+size = 160
+outline_color = Color( 0.309804, 0.309804, 0.309804, 0.419608 )
+use_mipmaps = true
+use_filter = true
+font_data = ExtResource( 2 )
+
+[sub_resource type="GDScript" id=6]
+script/source = "extends Label
+
+# Timestamps of frames rendered in the last second
+var times := []
+
+# Frames per second
+var fps := 0
+
+
+func _process(_delta: float) -> void:
+	var now := OS.get_ticks_msec()
+
+	# Remove frames older than 1 second in the `times` array
+	while times.size() > 0 and times[0] <= now - 1000:
+		times.pop_front()
+
+	times.append(now)
+	fps = times.size()
+
+	# Display FPS in the label
+	text = str(fps) + \" FPS\"
+"
+
+[sub_resource type="DynamicFont" id=7]
+size = 300
+outline_size = 20
+outline_color = Color( 0.490196, 0.878431, 1, 1 )
+use_mipmaps = true
+use_filter = true
+font_data = ExtResource( 3 )
+
+[sub_resource type="DynamicFont" id=12]
+size = 128
+outline_color = Color( 0.309804, 0.309804, 0.309804, 0.419608 )
+use_mipmaps = true
+use_filter = true
+font_data = ExtResource( 2 )
+
+[sub_resource type="Animation" id=9]
+resource_name = "New Anim"
+tracks/0/type = "value"
+tracks/0/path = NodePath("bg2:rect_scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 0.6 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector2( 50, 50 ), Vector2( 1e-05, 1e-05 ) ]
+}
+tracks/1/type = "value"
+tracks/1/path = NodePath("Label:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0, 0.6, 0.8 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
+"update": 0,
+"values": [ Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 1 ) ]
+}
+tracks/2/type = "value"
+tracks/2/path = NodePath("Label:rect_position")
+tracks/2/interp = 2
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = false
+tracks/2/keys = {
+"times": PoolRealArray( 0, 0.6, 0.8 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
+"update": 0,
+"values": [ Vector2( 61.136, 78.4411 ), Vector2( 61.136, 78.4411 ), Vector2( 61.136, 260.577 ) ]
+}
+tracks/3/type = "value"
+tracks/3/path = NodePath("Label:rect_pivot_offset")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = {
+"times": PoolRealArray( 0, 0.6, 0.8 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
+"update": 0,
+"values": [ Vector2( -1000, 0 ), Vector2( -1000, 0 ), Vector2( 0, 0 ) ]
+}
+tracks/4/type = "value"
+tracks/4/path = NodePath("tap:modulate")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = {
+"times": PoolRealArray( 0, 0.8, 1 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
+"update": 0,
+"values": [ Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 1 ) ]
+}
+
+[sub_resource type="Animation" id=13]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath("tap:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Color( 1, 1, 1, 1 ) ]
+}
+
+[sub_resource type="DynamicFont" id=11]
+size = 300
+outline_size = 20
+outline_color = Color( 0.490196, 0.882353, 1, 1 )
+use_mipmaps = true
+use_filter = true
+font_data = ExtResource( 3 )
+
+[sub_resource type="Animation" id=14]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/path = NodePath("tap:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Color( 1, 1, 1, 0 ) ]
+}
+
+[sub_resource type="Animation" id=8]
+resource_name = "show"
+length = 1.4
+tracks/0/type = "value"
+tracks/0/path = NodePath("bg:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = false
+tracks/0/keys = {
+"times": PoolRealArray( 0, 1 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector2( 1e-05, 1e-05 ), Vector2( 100, 100 ) ]
+}
+tracks/1/type = "value"
+tracks/1/path = NodePath("Label:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = false
+tracks/1/keys = {
+"times": PoolRealArray( 0, 0.5 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 1,
+"values": [ false, true ]
+}
+tracks/2/type = "value"
+tracks/2/path = NodePath("Score:visible")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/imported = false
+tracks/2/enabled = false
+tracks/2/keys = {
+"times": PoolRealArray( 0, 0.8 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 1,
+"values": [ false, true ]
+}
+tracks/3/type = "value"
+tracks/3/path = NodePath("Label:modulate")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/keys = {
+"times": PoolRealArray( 0, 0.5, 0.7 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
+"update": 0,
+"values": [ Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 1 ) ]
+}
+tracks/4/type = "value"
+tracks/4/path = NodePath("Score:modulate")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/keys = {
+"times": PoolRealArray( 0, 0.8, 1 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
+"update": 0,
+"values": [ Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 1 ) ]
+}
+tracks/5/type = "value"
+tracks/5/path = NodePath("bg:rect_scale")
+tracks/5/interp = 2
+tracks/5/loop_wrap = true
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/keys = {
+"times": PoolRealArray( 0, 1 ),
+"transitions": PoolRealArray( 1, 1 ),
+"update": 0,
+"values": [ Vector2( 1e-05, 1e-05 ), Vector2( 50, 50 ) ]
+}
+tracks/6/type = "value"
+tracks/6/path = NodePath("bg:modulate")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/keys = {
+"times": PoolRealArray( 0, 0.5, 1 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
+"update": 0,
+"values": [ Color( 0.952941, 0.952941, 0.952941, 0.537255 ), Color( 0.952941, 0.952941, 0.952941, 0.537255 ), Color( 0.952941, 0.952941, 0.952941, 1 ) ]
+}
+tracks/7/type = "value"
+tracks/7/path = NodePath("tap:modulate")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/keys = {
+"times": PoolRealArray( 0, 1.2, 1.4 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
+"update": 0,
+"values": [ Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 1 ) ]
+}
+
+[sub_resource type="GDScript" id=10]
+script/source = "extends Node
+
+
+func _process(delta: float) -> void:
+	if Input.is_action_just_pressed(\"ui_down\"):
+		# start screen capture
+		var img = get_viewport().get_texture().get_data()
+#		yield(get_tree(), \"idle_frame\")
+#		yield(get_tree(), \"idle_frame\")
+
+		# save to a file
+		img.flip_y()
+		img.save_png(\"res://screenshots/\" + str(OS.get_unix_time()) + \".png\")
+"
+
+[node name="Node2D" type="Node2D"]
+script = SubResource( 1 )
+
+[node name="left_border" type="Line2D" parent="."]
+position = Vector2( 16, -3246.82 )
+points = PoolVector2Array( 0, 0, 0, 10000 )
+width = 32.0
+default_color = Color( 0.266667, 0.266667, 0.266667, 1 )
+
+[node name="right_border" type="Line2D" parent="."]
+position = Vector2( 1064, -3246.82 )
+points = PoolVector2Array( 0, 0, 0, 10000 )
+width = 32.0
+default_color = Color( 0.266667, 0.266667, 0.266667, 1 )
+
+[node name="cam" type="Camera2D" parent="."]
+position = Vector2( 540, 960 )
+current = true
+
+[node name="Player" parent="." instance=ExtResource( 1 )]
+pause_mode = 2
+
+[node name="tracer" type="Node2D" parent="."]
+script = SubResource( 2 )
+
+[node name="UI" type="CanvasLayer" parent="."]
+script = SubResource( 4 )
+
+[node name="fps" type="Label" parent="UI"]
+anchor_top = 1.0
+anchor_bottom = 1.0
+margin_top = -155.0
+margin_right = 370.0
+custom_fonts/font = SubResource( 5 )
+custom_colors/font_color = Color( 0.34902, 0.34902, 0.34902, 1 )
+text = "6969"
+align = 1
+valign = 1
+script = SubResource( 6 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Start" type="Control" parent="UI"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="bg2" type="TextureRect" parent="UI/Start"]
+modulate = Color( 0.952941, 0.952941, 0.952941, 1 )
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -64.0
+margin_top = -64.0
+margin_right = 64.0
+margin_bottom = 64.0
+rect_scale = Vector2( 1e-05, 1e-05 )
+rect_pivot_offset = Vector2( 64, 64 )
+texture = ExtResource( 4 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="UI/Start"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -478.864
+margin_top = -699.423
+margin_right = 402.136
+margin_bottom = -37.4227
+rect_rotation = -5.84879
+custom_fonts/font = SubResource( 7 )
+custom_colors/font_color = Color( 0.992157, 0.368627, 0.733333, 1 )
+custom_constants/line_spacing = -60
+text = "Run
+   Retry"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="tap" type="Label" parent="UI/Start"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -497.0
+margin_top = 537.921
+margin_right = 513.0
+margin_bottom = 730.921
+custom_fonts/font = SubResource( 12 )
+custom_colors/font_color = Color( 0.784314, 0.784314, 0.784314, 1 )
+text = "Tap to START"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="anim" type="AnimationPlayer" parent="UI/Start"]
+autoplay = "New Anim"
+"anims/New Anim" = SubResource( 9 )
+anims/RESET = SubResource( 13 )
+
+[node name="Die" type="Control" parent="UI"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="bg" type="TextureRect" parent="UI/Die"]
+modulate = Color( 0.952941, 0.952941, 0.952941, 0.537255 )
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -64.0
+margin_top = -64.0
+margin_right = 64.0
+margin_bottom = 64.0
+rect_scale = Vector2( 1e-05, 1e-05 )
+rect_pivot_offset = Vector2( 64, 64 )
+texture = ExtResource( 4 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Label" type="Label" parent="UI/Die"]
+modulate = Color( 1, 1, 1, 0 )
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -478.864
+margin_top = -699.423
+margin_right = 402.136
+margin_bottom = -37.4227
+rect_rotation = -5.84879
+custom_fonts/font = SubResource( 11 )
+custom_colors/font_color = Color( 0.184314, 0.576471, 0.996078, 1 )
+custom_constants/line_spacing = -60
+text = "You
+     Lose"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="tap" type="Label" parent="UI/Die"]
+modulate = Color( 1, 1, 1, 0 )
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -497.0
+margin_top = 537.921
+margin_right = 513.0
+margin_bottom = 730.921
+custom_fonts/font = SubResource( 12 )
+custom_colors/font_color = Color( 0.784314, 0.784314, 0.784314, 1 )
+text = "Tap to RESTART"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Score" type="Label" parent="UI/Die"]
+modulate = Color( 1, 1, 1, 0 )
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -501.0
+margin_top = 144.761
+margin_right = 509.0
+margin_bottom = 299.761
+custom_fonts/font = SubResource( 5 )
+custom_colors/font_color = Color( 0.34902, 0.34902, 0.34902, 1 )
+text = "Score: 6969"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="anim" type="AnimationPlayer" parent="UI/Die"]
+pause_mode = 2
+anims/RESET = SubResource( 14 )
+anims/show = SubResource( 8 )
+
+[node name="InGame" type="Control" parent="UI"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Score" type="Label" parent="UI/InGame"]
+anchor_left = 0.5
+anchor_right = 0.5
+margin_left = -503.0
+margin_top = 127.536
+margin_right = 507.0
+margin_bottom = 282.536
+custom_fonts/font = SubResource( 5 )
+custom_colors/font_color = Color( 0.329412, 0.329412, 0.329412, 0.513726 )
+text = "6969"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="screenshooter" type="Node" parent="."]
+script = SubResource( 10 )
