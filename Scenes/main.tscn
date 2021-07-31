@@ -9,17 +9,6 @@
 resource_name = "TODO"
 script/source = "extends Node2D
 
-\"\"\"
-TODO:
-	1. +Enemies
-	2. +Score
-	3. +Die
-	4. Boosts
-	5. Start UI
-	6. Die panel
-	7. ?Scoreboard?
-	8. Yandex.API
-\"\"\"
 
 var enemy = preload(\"res://objects/enemy.tscn\")
 var spawn_time = 0.75
@@ -37,6 +26,7 @@ func _ready() -> void:
 	update_score()
 	set_process(false)
 	get_tree().paused = false
+	yield(get_tree().create_timer(1), \"timeout\")
 	YSDK.show_fullscreen_adv()
 
 
@@ -83,11 +73,15 @@ func enemy_free(obj) -> void:
 func start_game() -> void:
 	set_process(true)
 	$UI.start_game()
+	print(\"StartGame\")
+	GameAnalytics.add_progression_event(GameAnalytics.PROGRESSION_STATUS.Start, \"infinity\")
 
 func end_game() -> void:
 	set_process(false)
 	get_tree().paused = true
 	$UI.end_game(score)
+	print(\"EndGame\")
+	GameAnalytics.add_progression_event(GameAnalytics.PROGRESSION_STATUS.Complete, \"infinity\", \"\", \"\", score)
 
 func restart_game() -> void:
 	get_tree().reload_current_scene()
@@ -443,6 +437,7 @@ script = SubResource( 2 )
 script = SubResource( 4 )
 
 [node name="fps" type="Label" parent="UI"]
+visible = false
 anchor_top = 1.0
 anchor_bottom = 1.0
 margin_top = -155.0
@@ -635,5 +630,6 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="screenshooter" type="Node" parent="."]
+[node name="screenshooter" type="Node2D" parent="."]
+visible = false
 script = SubResource( 10 )

@@ -28,9 +28,10 @@ func _input(event: InputEvent) -> void:
 			event is InputEventScreenTouch:
 		movable = event.pressed
 		if start && event.pressed:
+			start = false
 			get_tree().current_scene.start_game()
 	
-	if movable and \\
+	if !start and movable and \\
 			event is InputEventMouseMotion or \\
 			event is InputEventScreenDrag:
 		target_pos += Vector2(event.relative.x, 0)

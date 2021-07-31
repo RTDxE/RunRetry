@@ -17,13 +17,14 @@ config/icon="res://icon.png"
 [autoload]
 
 YSDK="*res://scripts/ysdk.gd"
+GameAnalytics="*res://scripts/GameAnalytics.gd"
 
 [display]
 
 window/size/width=1080
 window/size/height=1920
 window/handheld/orientation="portrait"
-window/stretch/mode="viewport"
+window/stretch/mode="2d"
 window/stretch/aspect="expand"
 
 [physics]
@@ -41,5 +42,4 @@ vram_compression/import_etc=true
 quality/shadows/filter_mode=0
 gles2/compatibility/disable_half_float=true
 environment/default_clear_color=Color( 0.952941, 0.952941, 0.952941, 1 )
-environment/default_environment="res://default_env.tres"
 quality/dynamic_fonts/use_oversampling=false

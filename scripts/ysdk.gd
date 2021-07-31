@@ -40,42 +40,31 @@ func init() -> void:
 		return
 	
 	var yagames = JavaScript.get_interface("YaGames")
-	yagames.init().then(_cb_initialized)
-#	JavaScript.eval("""
-#	YaGames
-#		.init()
-#		.then(ysdk => {
-#			console.log('Yandex SDK initialized');
-#			window.ysdk = ysdk;
-#		});
-#	""", true)
+	if yagames:
+		yagames.init().then(_cb_initialized)
 
 
 func show_fullscreen_adv() -> void:
-	if !OS.has_feature('JavaScript'):
+	if !OS.has_feature('JavaScript') or !ysdk:
 		return
 	
-	if last_show != 0 and OS.get_unix_time() - last_show < 10:
+	console.log("Try to how fullscreen adv")
+	
+	if last_show != 0 and OS.get_unix_time() - last_show < 180:
 		return
 	last_show = OS.get_unix_time()
 	
+	console.log("Show fullscreen adv")
+	
 	ysdk.adv.showFullscreenAdv(adv_fs_cb)
-#	JavaScript.eval("""
-#	ysdk.adv.showFullscreenAdv({
-#			callbacks: {
-#			onClose: function(wasShown) {
-#				// some action after close
-#			},
-#			onError: function(error) {
-#				// some action on error
-#			}
-#		}
-#	})
-#	""", true)
 
+func get_lang() -> String:
+	if !OS.has_feature('JavaScript') or !ysdk:
+		return "en"
+	return ysdk.environment.lang
 
 func _cb_initialized(args) -> void:
-	console.log('Yandex SDK initialized')
+#	console.log('Yandex SDK initialized')
 	window.ysdk = args[0]
 	ysdk = window.ysdk
 
