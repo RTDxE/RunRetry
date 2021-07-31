@@ -23,8 +23,10 @@ GameAnalytics="*res://scripts/GameAnalytics.gd"
 
 window/size/width=1080
 window/size/height=1920
+window/size/test_width=960
+window/size/test_height=540
 window/handheld/orientation="portrait"
-window/stretch/mode="2d"
+window/stretch/mode="viewport"
 window/stretch/aspect="expand"
 
 [physics]

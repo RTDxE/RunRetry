@@ -80,7 +80,7 @@ func show_fullscreen_adv() -> void:
 
 func get_lang() -> String:
 	if !OS.has_feature('JavaScript') or !ysdk:
-		return "en"
+		return "ru"
 	return ysdk.environment.lang
 
 func get_record() -> int:
