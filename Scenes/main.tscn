@@ -6,7 +6,7 @@
 [ext_resource path="res://art/circle.png" type="Texture" id=4]
 
 [sub_resource type="GDScript" id=1]
-resource_name = "TODO"
+resource_name = "Game"
 script/source = "extends Node2D
 
 
@@ -26,9 +26,15 @@ func _ready() -> void:
 	update_score()
 	set_process(false)
 	get_tree().paused = false
-	yield(get_tree().create_timer(1), \"timeout\")
-	YSDK.show_fullscreen_adv()
 
+func _process(delta: float) -> void:
+	if current_spawn_time > spawn_time:
+		current_spawn_time -= spawn_time
+		spawn_enemy()
+		spawn_time -= spawn_addict
+		spawn_addict *= 0.8
+	
+	current_spawn_time += delta
 
 func spawn_enemy() -> void:
 	var e
@@ -46,28 +52,16 @@ func spawn_enemy() -> void:
 	bottom_right = $cam.global_position + get_viewport_rect().size / 2
 	e.global_position = Vector2(randi() % 824 + 128, top_left.y-300)
 
-
-func _process(delta: float) -> void:
-	if current_spawn_time > spawn_time:
-		current_spawn_time -= spawn_time
-		spawn_enemy()
-		spawn_time -= spawn_addict
-		spawn_addict *= 0.8
-	
-	current_spawn_time += delta
+func enemy_free(obj) -> void:
+	free_enemies.append(obj)
 
 
 func add_score() -> void:
 	score += 1
 	update_score()
 
-
 func update_score() -> void:
 	$UI.set_score(score)
-
-
-func enemy_free(obj) -> void:
-	free_enemies.append(obj)
 
 
 func start_game() -> void:
@@ -79,7 +73,11 @@ func start_game() -> void:
 func end_game() -> void:
 	set_process(false)
 	get_tree().paused = true
-	$UI.end_game(score)
+	var record = YSDK.get_record()
+	if record >= 0:
+		record = max(score, record)
+	YSDK.set_record(record)
+	$UI.end_game(score, record)
 	print(\"EndGame\")
 	GameAnalytics.add_progression_event(GameAnalytics.PROGRESSION_STATUS.Complete, \"infinity\", \"\", \"\", score)
 
@@ -138,11 +136,12 @@ func start_game() -> void:
 	$Start.hide()
 	$InGame.show()
 
-func end_game(score) -> void:
+func end_game(score, record) -> void:
 	$InGame.hide()
 	$Die.show()
 	$Die/anim.play(\"show\")
 	$Die/Score.text = \"Score: \" + str(score)
+	$Die/Record.text = (\"Record: \" + str(record)) if record >= 0 else \"\"
 "
 
 [sub_resource type="DynamicFont" id=5]
@@ -291,10 +290,22 @@ tracks/0/keys = {
 "update": 0,
 "values": [ Color( 1, 1, 1, 0 ) ]
 }
+tracks/1/type = "value"
+tracks/1/path = NodePath("Record:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0 ),
+"transitions": PoolRealArray( 1 ),
+"update": 0,
+"values": [ Color( 1, 1, 1, 1 ) ]
+}
 
 [sub_resource type="Animation" id=8]
 resource_name = "show"
-length = 1.4
+length = 1.6
 tracks/0/type = "value"
 tracks/0/path = NodePath("bg:scale")
 tracks/0/interp = 1
@@ -386,7 +397,19 @@ tracks/7/loop_wrap = true
 tracks/7/imported = false
 tracks/7/enabled = true
 tracks/7/keys = {
-"times": PoolRealArray( 0, 1.2, 1.4 ),
+"times": PoolRealArray( 0, 1.4, 1.6 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
+"update": 0,
+"values": [ Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 1 ) ]
+}
+tracks/8/type = "value"
+tracks/8/path = NodePath("Record:modulate")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/keys = {
+"times": PoolRealArray( 0, 1, 1.2 ),
 "transitions": PoolRealArray( 1, 1, 1 ),
 "update": 0,
 "values": [ Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 0 ), Color( 1, 1, 1, 1 ) ]
@@ -408,7 +431,7 @@ func _process(delta: float) -> void:
 		img.save_png(\"res://screenshots/\" + str(OS.get_unix_time()) + \".png\")
 "
 
-[node name="Node2D" type="Node2D"]
+[node name="Game" type="Node2D"]
 script = SubResource( 1 )
 
 [node name="left_border" type="Line2D" parent="."]
@@ -437,7 +460,6 @@ script = SubResource( 2 )
 script = SubResource( 4 )
 
 [node name="fps" type="Label" parent="UI"]
-visible = false
 anchor_top = 1.0
 anchor_bottom = 1.0
 margin_top = -155.0
@@ -469,7 +491,7 @@ margin_left = -64.0
 margin_top = -64.0
 margin_right = 64.0
 margin_bottom = 64.0
-rect_scale = Vector2( 1e-05, 1e-05 )
+rect_scale = Vector2( 50, 50 )
 rect_pivot_offset = Vector2( 64, 64 )
 texture = ExtResource( 4 )
 __meta__ = {
@@ -477,6 +499,7 @@ __meta__ = {
 }
 
 [node name="Label" type="Label" parent="UI/Start"]
+modulate = Color( 1, 1, 1, 0 )
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
@@ -486,6 +509,7 @@ margin_top = -699.423
 margin_right = 402.136
 margin_bottom = -37.4227
 rect_rotation = -5.84879
+rect_pivot_offset = Vector2( -1000, 0 )
 custom_fonts/font = SubResource( 7 )
 custom_colors/font_color = Color( 0.992157, 0.368627, 0.733333, 1 )
 custom_constants/line_spacing = -60
@@ -589,12 +613,30 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 margin_left = -501.0
-margin_top = 144.761
+margin_top = 70.8879
 margin_right = 509.0
-margin_bottom = 299.761
+margin_bottom = 263.888
 custom_fonts/font = SubResource( 5 )
 custom_colors/font_color = Color( 0.34902, 0.34902, 0.34902, 1 )
 text = "Score: 6969"
+align = 1
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Record" type="Label" parent="UI/Die"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -540.0
+margin_top = 243.127
+margin_right = 539.0
+margin_bottom = 436.127
+custom_fonts/font = SubResource( 5 )
+custom_colors/font_color = Color( 0.34902, 0.34902, 0.34902, 1 )
+text = "Record: 6996"
 align = 1
 valign = 1
 __meta__ = {

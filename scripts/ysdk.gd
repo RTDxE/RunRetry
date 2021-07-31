@@ -1,16 +1,20 @@
 extends Node
 
 var _cb_initialized = JavaScript.create_callback(self, "_initialized")
+#var _cb_player_auth = JavaScript.create_callback(self, "_player_auth")
 var _cb_adv_fs_close = JavaScript.create_callback(self, "_adv_fs_close")
 var _cb_adv_fs_error = JavaScript.create_callback(self, "_adv_fs_error")
+var adv_fs_cb
+var last_show = 0
 
 var console
 var window
 var ysdk
+#var player
+var storage
 
-var adv_fs_cb
+var _local_record = 0
 
-var last_show = 0
 
 func _init() -> void:
 	if !OS.has_feature('JavaScript'):
@@ -19,13 +23,13 @@ func _init() -> void:
 	console = JavaScript.get_interface("console")
 	window = JavaScript.get_interface("window")
 	
-	init_fullscreen_adv_callbacks()
+	_ya_init_fullscreen_adv_callbacks()
 	
-	init()
-	show_fullscreen_adv()
+	_ya_init()
+	_ya_init_storage()
 
 
-func init_fullscreen_adv_callbacks() -> void:
+func _ya_init_fullscreen_adv_callbacks() -> void:
 	if !OS.has_feature('JavaScript'):
 		return
 	
@@ -35,13 +39,29 @@ func init_fullscreen_adv_callbacks() -> void:
 	adv_fs_cb.callbacks.onError = _cb_adv_fs_error
 
 
-func init() -> void:
+func _ya_init() -> void:
 	if !OS.has_feature('JavaScript'):
 		return
 	
 	var yagames = JavaScript.get_interface("YaGames")
 	if yagames:
 		yagames.init().then(_cb_initialized)
+
+func _ya_init_storage() -> void:
+	if !OS.has_feature('JavaScript') or !ysdk:
+		return
+	
+	var yStorage = JavaScript.get_interface("YandexStorage")
+	if yStorage:
+		window.storage = yStorage.new(JavaScript.create_object("Object"), false)
+		storage = window.storage
+		storage.init(window.ysdk)
+
+#func _ya_init_player() -> void:
+#	if !OS.has_feature('JavaScript') or !ysdk:
+#		return
+#
+#	ysdk.getPlayer().then(_cb_player_auth)
 
 
 func show_fullscreen_adv() -> void:
@@ -63,10 +83,39 @@ func get_lang() -> String:
 		return "en"
 	return ysdk.environment.lang
 
-func _cb_initialized(args) -> void:
-#	console.log('Yandex SDK initialized')
+func get_record() -> int:
+	if !OS.has_feature('JavaScript') or !ysdk or !storage:
+		return _local_record
+	
+	
+	var record = storage.get("record")[0]
+	if (record == null):
+		return 0
+	
+	return int(record)
+
+func set_record(value: int) -> void:
+	if !OS.has_feature('JavaScript') or !ysdk or !storage:
+		_local_record = value
+		return
+	
+	var o = JavaScript.create_object("Object")
+	o.record = value
+	storage.set(o, false)
+
+# Callbacks
+
+func _initialized(args) -> void:
+	console.log('Yandex SDK initialized')
 	window.ysdk = args[0]
 	ysdk = window.ysdk
+	# Why not?
+	show_fullscreen_adv()
+
+#func _player_auth(args) -> void:
+#	console.log('Player initialized')
+#	window.player = args[0]
+#	player = window.player
 
 func _adv_fs_close(ergs) -> void:
 	console.log("Adv closed")
