@@ -31,7 +31,7 @@ func _process(delta: float) -> void:
 		if global_position.y > player.global_position.y - 128 and \\
 				global_position.y < player.global_position.y:
 			if abs(global_position.x - player.global_position.x) < 96:
-				player.die()
+				get_tree().current_scene.end_game()
 		elif global_position.y > player.global_position.y :
 				passed = true
 				get_tree().current_scene.add_score()

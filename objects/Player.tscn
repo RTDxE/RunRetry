@@ -9,29 +9,17 @@ script/source = "extends Node2D
 var movable = false
 var target_pos = Vector2()
 
-var start = true
-var died = false
-
-
 func _ready() -> void:
 	target_pos = global_position
+	set_process_input(false)
 
 
 func _input(event: InputEvent) -> void:
-	if died:
-		if event is InputEventMouseButton or \\
-				event is InputEventScreenTouch:
-			if event.pressed:
-				get_tree().current_scene.restart_game()
-	
 	if event is InputEventMouseButton or \\
 			event is InputEventScreenTouch:
 		movable = event.pressed
-		if start && event.pressed:
-			start = false
-			get_tree().current_scene.start_game()
 	
-	if !start and movable and \\
+	if movable and \\
 			event is InputEventMouseMotion or \\
 			event is InputEventScreenDrag:
 		target_pos += Vector2(event.relative.x, 0)
@@ -53,9 +41,7 @@ func _process(delta: float) -> void:
 	)
 
 func die() -> void:
-	get_tree().current_scene.end_game()
 	set_process(false)
-	died = true
 "
 
 [sub_resource type="GDScript" id=2]
