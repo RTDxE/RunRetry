@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=2]
+[gd_scene load_steps=28 format=2]
 
 [ext_resource path="res://objects/Player.tscn" type="PackedScene" id=1]
 [ext_resource path="res://fonts/Lato/Lato-Light.ttf" type="DynamicFontData" id=2]
@@ -22,6 +22,8 @@ var bottom_right
 var start = false
 var score = 0
 
+func _init() -> void:
+	TranslationServer.set_locale(\"ru\" if YSDK.get_lang() == \"ru\" else \"en\")
 
 func _ready() -> void:
 	randomize()
@@ -85,7 +87,7 @@ func end_game() -> void:
 	if record >= 0:
 		var r = max(score, record)
 		if r > record:
-			YSDK.set_record(record)
+			YSDK.set_record(r)
 		record = r
 	$UI.end_game(score, record)
 	print(\"EndGame\")
@@ -96,6 +98,8 @@ func end_game() -> void:
 		\"\", 
 		score
 	)
+	yield(get_tree().create_timer(1.5), \"timeout\")
+	YSDK.show_fullscreen_adv()
 
 func restart_game() -> void:
 	get_tree().reload_current_scene()
@@ -157,13 +161,14 @@ func end_game(score, record) -> void:
 	$InGame.hide()
 	$Die.show()
 	$Die/anim.play(\"show\")
-	$Die/Score.text = \"Score: \" + str(score)
+	print(tr(\"SCORE\"))
+	$Die/Score.text = tr(\"SCORE\") + \": \" + str(score)
 	if record >= 0:
 		if record == score and score > 0:
 			$Die/Record.hide()
 			$Die/NewRecord.show()
 		elif record > 0:
-			$Die/Record.text = (\"Record: \" + str(record))
+			$Die/Record.text = tr(\"RECORD\") + \": \" + str(record)
 		else:
 			$Die/Record.hide()
 	yield(get_tree().create_timer(1), \"timeout\")
@@ -185,7 +190,7 @@ size = 160
 outline_color = Color( 0.309804, 0.309804, 0.309804, 0.419608 )
 use_mipmaps = true
 use_filter = true
-font_data = ExtResource( 2 )
+font_data = ExtResource( 6 )
 
 [sub_resource type="GDScript" id=6]
 script/source = "extends Label
@@ -337,6 +342,13 @@ tracks/0/keys = {
 "update": 0,
 "values": [ Color( 1, 1, 1, 1 ) ]
 }
+
+[sub_resource type="DynamicFont" id=22]
+size = 160
+outline_color = Color( 0.309804, 0.309804, 0.309804, 0.419608 )
+use_mipmaps = true
+use_filter = true
+font_data = ExtResource( 2 )
 
 [sub_resource type="DynamicFont" id=11]
 size = 300
@@ -721,7 +733,7 @@ custom_colors/font_color_disabled = Color( 0.701961, 0.109804, 0.109804, 1 )
 custom_colors/font_color = Color( 0.584314, 0.207843, 0.207843, 1 )
 custom_colors/font_color_hover = Color( 0.701961, 0.109804, 0.109804, 1 )
 custom_colors/font_color_pressed = Color( 0.701961, 0.109804, 0.109804, 1 )
-text = "Log in to save your progress!"
+text = "AUTH_ATENTION"
 script = SubResource( 21 )
 __meta__ = {
 "_edit_use_anchors_": false
@@ -749,11 +761,11 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-margin_left = -476.135
-margin_top = -662.298
-margin_right = 404.865
-margin_bottom = -0.297974
-rect_rotation = -5.84879
+margin_left = -492.312
+margin_top = -653.311
+margin_right = 388.688
+margin_bottom = 8.68903
+rect_rotation = -7.4375
 custom_fonts/font = SubResource( 7 )
 custom_colors/font_color = Color( 0.972549, 0.4, 0.721569, 1 )
 custom_constants/line_spacing = -60
@@ -774,7 +786,7 @@ margin_right = 513.0
 margin_bottom = 730.921
 custom_fonts/font = SubResource( 12 )
 custom_colors/font_color = Color( 0.784314, 0.784314, 0.784314, 1 )
-text = "Tap to START"
+text = "START_GAME"
 align = 1
 valign = 1
 __meta__ = {
@@ -811,7 +823,7 @@ margin_left = -503.0
 margin_top = 127.536
 margin_right = 507.0
 margin_bottom = 282.536
-custom_fonts/font = SubResource( 5 )
+custom_fonts/font = SubResource( 22 )
 custom_colors/font_color = Color( 0.329412, 0.329412, 0.329412, 0.513726 )
 text = "6969"
 align = 1
@@ -849,11 +861,11 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-margin_left = -478.864
-margin_top = -699.423
-margin_right = 402.136
-margin_bottom = -37.4227
-rect_rotation = -5.84879
+margin_left = -477.3
+margin_top = -683.305
+margin_right = 403.7
+margin_bottom = -21.3047
+rect_rotation = -7.72585
 custom_fonts/font = SubResource( 11 )
 custom_colors/font_color = Color( 0.184314, 0.576471, 0.996078, 1 )
 custom_constants/line_spacing = -60
@@ -875,7 +887,7 @@ margin_right = 513.0
 margin_bottom = 730.921
 custom_fonts/font = SubResource( 12 )
 custom_colors/font_color = Color( 0.784314, 0.784314, 0.784314, 1 )
-text = "Tap to RESTART"
+text = "RESTART_GAME"
 align = 1
 valign = 1
 __meta__ = {
@@ -933,7 +945,7 @@ margin_bottom = 459.638
 rect_rotation = -8.21574
 custom_fonts/font = SubResource( 15 )
 custom_colors/font_color = Color( 0.996078, 0.309804, 0.662745, 1 )
-text = "New record!"
+text = "NEW_RECORD"
 align = 1
 valign = 1
 __meta__ = {

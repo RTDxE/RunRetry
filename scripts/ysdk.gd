@@ -122,6 +122,7 @@ func _initialized(args) -> void:
 	_ya_init_player(false)
 	# Why not?
 	show_fullscreen_adv()
+	TranslationServer.set_locale("ru" if get_lang() == "ru" else "en")
 
 func _player_auth(args) -> void:
 	console.log('Player initialized')
