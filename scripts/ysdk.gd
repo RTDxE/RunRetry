@@ -89,7 +89,8 @@ func show_fullscreen_adv() -> void:
 func get_lang() -> String:
 	if !OS.has_feature('JavaScript') or !ysdk:
 		return "en"
-	return ysdk.environment.lang
+	console.log("Init game lang")
+	return ysdk.environment.i18n.lang
 
 func get_record() -> int:
 	if !OS.has_feature('JavaScript') or !ysdk or !storage:
@@ -120,9 +121,10 @@ func _initialized(args) -> void:
 	window.ysdk = args[0]
 	ysdk = window.ysdk
 	_ya_init_player(false)
+	TranslationServer.set_locale("ru" if get_lang() == "ru" else "en")
 	# Why not?
 	show_fullscreen_adv()
-	TranslationServer.set_locale("ru" if get_lang() == "ru" else "en")
+	
 
 func _player_auth(args) -> void:
 	console.log('Player initialized')
