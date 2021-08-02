@@ -238,7 +238,7 @@ script/source = "extends Button
 
 func _ready() -> void:
 	connect(\"pressed\", self, \"_on_Login_pressed\")
-	hide()
+	visible = YSDK.player == null and YSDK.ysdk != null
 
 func _check_player() -> void:
 	if YSDK.player != null:

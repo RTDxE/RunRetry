@@ -4,6 +4,7 @@ signal player_logged
 
 var _cb_initialized = JavaScript.create_callback(self, "_initialized")
 var _cb_player_auth = JavaScript.create_callback(self, "_player_auth")
+var _cb_player_anonymous = JavaScript.create_callback(self, "_player_anon")
 var _cb_player_login = JavaScript.create_callback(self, "_player_login")
 var _cb_adv_fs_close = JavaScript.create_callback(self, "_adv_fs_close")
 var _cb_adv_fs_error = JavaScript.create_callback(self, "_adv_fs_error")
@@ -64,7 +65,7 @@ func _ya_init_player(scopes: bool) -> void:
 
 	var o = JavaScript.create_object("Object")
 	o.scopes = scopes
-	ysdk.getPlayer(o).then(_cb_player_auth)
+	ysdk.getPlayer(o).then(_cb_player_auth).catch(_cb_player_anonymous)
 
 func show_auth_popup() -> void:
 	if !OS.has_feature('JavaScript') or !ysdk:
@@ -76,20 +77,15 @@ func show_fullscreen_adv() -> void:
 	if !OS.has_feature('JavaScript') or !ysdk:
 		return
 	
-	console.log("Try to how fullscreen adv")
-	
 	if last_show != 0 and OS.get_unix_time() - last_show < 180:
 		return
 	last_show = OS.get_unix_time()
-	
-	console.log("Show fullscreen adv")
 	
 	ysdk.adv.showFullscreenAdv(adv_fs_cb)
 
 func get_lang() -> String:
 	if !OS.has_feature('JavaScript') or !ysdk:
 		return "en"
-	console.log("Init game lang")
 	return ysdk.environment.i18n.lang
 
 func get_record() -> int:
@@ -109,7 +105,6 @@ func set_record(value: int) -> void:
 		_local_record = value
 		return
 	
-	console.log("Set record " + str(value))
 	var o = JavaScript.create_object("Object")
 	o.record = value
 	storage.set(o, true)
@@ -117,7 +112,6 @@ func set_record(value: int) -> void:
 # Callbacks
 
 func _initialized(args) -> void:
-	console.log('Yandex SDK initialized')
 	window.ysdk = args[0]
 	ysdk = window.ysdk
 	_ya_init_player(false)
@@ -127,16 +121,18 @@ func _initialized(args) -> void:
 	
 
 func _player_auth(args) -> void:
-	console.log('Player initialized')
 	window.player = args[0]
 	player = window.player
+	emit_signal("player_logged")
+
+func _player_anon(args) -> void:
 	emit_signal("player_logged")
 
 func _player_login(_args) -> void:
 	_ya_init_player(false)
 
 func _adv_fs_close(_args) -> void:
-	console.log("Adv closed")
+	pass
 
 func _adv_fs_error(_args) -> void:
-	console.log("Adv error")
+	pass
