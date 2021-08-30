@@ -134,6 +134,7 @@ $GODOT_HEAD_INCLUDE
 		<div id='status-notice' class='godot' style='display: none;'></div>
 	</div>
 
+
 	<script type='text/javascript' src='$GODOT_URL'></script>
 	<script type='text/javascript'>//<![CDATA[
 
@@ -215,31 +216,47 @@ $GODOT_HEAD_INCLUDE
 				initializing = false;
 			};
 
-			if (!Engine.isWebGLAvailable()) {
-				displayFailureNotice('WebGL not available');
-			} else {
-				setStatusMode('indeterminate');
-				engine.startGame({
-					'onProgress': function (current, total) {
-						if (total > 0) {
-							statusProgressInner.style.width = current/total * 100 + '%';
-							setStatusMode('progress');
-							if (current === total) {
-								// wait for progress bar animation
-								setTimeout(() => {
-									setStatusMode('indeterminate');
-								}, 500);
-							}
-						} else {
-							setStatusMode('indeterminate');
-						}
-					},
-				}).then(() => {
-					setStatusMode('hidden');
-					initializing = false;
-				}, displayFailureNotice);
-			}
+            window._gameScore = null;
+	    	window.onGSInit = (gameScore) => {
+
+		    	window._gameScore = gameScore;
+                        console.log("wait");
+		    	gameScore.player.ready
+                .then(() => {
+                    console.log("done");
+                    gameScore.ads.showPreloader();
+                    console.log("load game");
+                    if (!Engine.isWebGLAvailable()) {
+                        displayFailureNotice('WebGL not available');
+                    } else {
+
+                        setStatusMode('indeterminate');
+                        engine.startGame({
+                            'onProgress': function (current, total) {
+                                if (total > 0) {
+                                    statusProgressInner.style.width = current/total * 100 + '%';
+                                    setStatusMode('progress');
+                                    if (current === total) {
+                                        // wait for progress bar animation
+                                        setTimeout(() => {
+                                            setStatusMode('indeterminate');
+                                        }, 500);
+                                    }
+                                } else {
+                                    setStatusMode('indeterminate');
+                                }
+                            },
+                        }).then(() => {
+                            setStatusMode('hidden');
+                            initializing = false;
+                        }, displayFailureNotice);
+                    }
+            	});
+	    	};
+
 		})();
 	//]]></script>
+
+    <script async src="https://gs.eponesh.com/sdk/game-score.js?projectId=187&publicToken=ngPLk-NmRWeJdybmgx6JwlsJypoTFMMS&callback=onGSInit"></script>
 </body>
 </html>

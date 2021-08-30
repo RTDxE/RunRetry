@@ -16,8 +16,7 @@ config/icon="res://icon.png"
 
 [autoload]
 
-YSDK="*res://scripts/ysdk.gd"
-GameAnalytics="*res://scripts/GameAnalytics.gd"
+GameScore="*res://scripts/GameScore.gd"
 
 [display]
 

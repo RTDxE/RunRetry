@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=2]
+[gd_scene load_steps=35 format=2]
 
 [ext_resource path="res://objects/Player.tscn" type="PackedScene" id=1]
 [ext_resource path="res://fonts/Lato/Lato-Light.ttf" type="DynamicFontData" id=2]
@@ -6,11 +6,11 @@
 [ext_resource path="res://art/circle.png" type="Texture" id=4]
 [ext_resource path="res://fonts/Roboto/Roboto-Regular.ttf" type="DynamicFontData" id=5]
 [ext_resource path="res://fonts/Roboto/Roboto-Light.ttf" type="DynamicFontData" id=6]
+[ext_resource path="res://art/icons8-cup-100.png" type="Texture" id=7]
 
 [sub_resource type="GDScript" id=1]
 resource_name = "Game"
 script/source = "extends Node2D
-
 
 var enemy = preload(\"res://objects/enemy.tscn\")
 var spawn_time = 0.75
@@ -18,20 +18,18 @@ var spawn_addict = 0.1
 var current_spawn_time = 0
 var free_enemies = []
 
-var bottom_right 
+var bottom_right
 var start = false
 var score = 0
 
-func _init() -> void:
-	TranslationServer.set_locale(\"ru\" if YSDK.get_lang() == \"ru\" else \"en\")
-
 func _ready() -> void:
+	TranslationServer.set_locale(\"ru\" if GameScore.get_lang() == \"ru\" else \"en\")
 	randomize()
 	update_score()
 	set_process(false)
 	get_tree().paused = false
-	
-	YSDK.connect(\"player_logged\", $UI/Start/Login, \"_check_player\")
+
+	GameScore.connect(\"player_logged\", $UI/Start/Login, \"_check_player\")
 
 func _process(delta: float) -> void:
 	if current_spawn_time > spawn_time:
@@ -39,8 +37,9 @@ func _process(delta: float) -> void:
 		spawn_enemy()
 		spawn_time -= spawn_addict
 		spawn_addict *= 0.8
-	
+
 	current_spawn_time += delta
+	Engine.time_scale += delta * 0.01
 
 func spawn_enemy() -> void:
 	var e
@@ -75,33 +74,24 @@ func start_game() -> void:
 	$Player.set_process_input(true)
 	$Player.movable = true
 	$UI.start_game()
-	print(\"StartGame\")
-	GameAnalytics.add_progression_event(
-		GameAnalytics.PROGRESSION_STATUS.Start, 
-		\"infinity\"
-	)
+	Engine.time_scale = 1.0
+	$conc.play(\"conc\")
 
 func end_game() -> void:
+	Engine.time_scale = 1.0
+	GameScore.add_try()
 	$Player.die()
 	set_process(false)
 	get_tree().paused = true
-	var record = YSDK.get_record()
+	var record = GameScore.get_record()
 	if record >= 0:
 		var r = max(score, record)
 		if r > record:
-			YSDK.set_record(r)
+			GameScore.set_record(r)
 		record = r
 	$UI.end_game(score, record)
-	print(\"EndGame\")
-	GameAnalytics.add_progression_event(
-		GameAnalytics.PROGRESSION_STATUS.Complete, 
-		\"infinity\", 
-		\"\", 
-		\"\", 
-		score
-	)
 	yield(get_tree().create_timer(1.5), \"timeout\")
-	YSDK.show_fullscreen_adv()
+	GameScore.show_fullscreen_ads()
 
 func restart_game() -> void:
 	get_tree().reload_current_scene()
@@ -163,7 +153,6 @@ func end_game(score, record) -> void:
 	$InGame.hide()
 	$Die.show()
 	$Die/anim.play(\"show\")
-	print(tr(\"SCORE\"))
 	$Die/Score.text = tr(\"SCORE\") + \": \" + str(score)
 	if record >= 0:
 		if record == score and score > 0:
@@ -218,6 +207,52 @@ func _process(_delta: float) -> void:
 	text = str(fps) + \" FPS\"
 "
 
+[sub_resource type="StyleBoxFlat" id=25]
+bg_color = Color( 0.462745, 0.462745, 0.462745, 1 )
+border_width_left = 8
+border_width_top = 8
+border_width_bottom = 8
+border_color = Color( 0.482353, 0.913725, 1, 1 )
+corner_radius_top_left = 16
+corner_radius_bottom_left = 16
+expand_margin_left = 16.0
+expand_margin_top = 16.0
+expand_margin_bottom = 16.0
+
+[sub_resource type="StyleBoxFlat" id=26]
+bg_color = Color( 0.360784, 0.360784, 0.360784, 1 )
+border_width_left = 8
+border_width_top = 8
+border_width_bottom = 8
+border_color = Color( 0.482353, 0.913725, 1, 1 )
+corner_radius_top_left = 16
+corner_radius_bottom_left = 16
+expand_margin_left = 16.0
+expand_margin_top = 16.0
+expand_margin_bottom = 16.0
+
+[sub_resource type="StyleBoxFlat" id=24]
+bg_color = Color( 0.360784, 0.360784, 0.360784, 1 )
+border_width_left = 8
+border_width_top = 8
+border_width_bottom = 8
+border_color = Color( 0.482353, 0.913725, 1, 1 )
+corner_radius_top_left = 16
+corner_radius_bottom_left = 16
+expand_margin_left = 16.0
+expand_margin_top = 16.0
+expand_margin_bottom = 16.0
+
+[sub_resource type="GDScript" id=29]
+script/source = "extends Button
+
+func _ready() -> void:
+	connect(\"pressed\", self, \"show_leaderboard\")
+
+func show_leaderboard() -> void:
+	GameScore.show_leaderboard()
+"
+
 [sub_resource type="StyleBoxFlat" id=19]
 bg_color = Color( 0.992157, 0.811765, 0.462745, 1 )
 
@@ -238,16 +273,13 @@ script/source = "extends Button
 
 func _ready() -> void:
 	connect(\"pressed\", self, \"_on_Login_pressed\")
-	visible = YSDK.player == null and YSDK.ysdk != null
+	_check_player()
 
 func _check_player() -> void:
-	if YSDK.player != null:
-		hide()
-	else:
-		show()
+	visible = !GameScore.player_is_logged()
 
 func _on_Login_pressed() -> void:
-	YSDK.show_auth_popup()
+	GameScore.player_auth()
 "
 
 [sub_resource type="DynamicFont" id=7]
@@ -669,8 +701,83 @@ func _process(delta: float) -> void:
 		img.save_png(\"res://screenshots/\" + str(OS.get_unix_time()) + \".png\")
 "
 
+[sub_resource type="GDScript" id=23]
+script/source = "extends Node
+
+var window
+var ctrl_pressed = false
+
+func _ready() -> void:
+	if OS.has_feature(\"JavaScript\"):
+		window = JavaScript.get_interface(\"window\")
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		if event.scancode == KEY_CONTROL:
+				ctrl_pressed = event.pressed
+		elif event.pressed:
+			if event.scancode == KEY_R and ctrl_pressed:
+				reload_page()
+			elif event.scancode in [KEY_F5, KEY_REFRESH]:
+				reload_page()
+
+
+func reload_page() -> void:
+	if window == null:
+		return
+	window.location.reload()
+"
+
+[sub_resource type="Animation" id=28]
+resource_name = "conc"
+length = 30.0
+tracks/0/type = "value"
+tracks/0/path = NodePath("ColorRect:color")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/keys = {
+"times": PoolRealArray( 0, 5.9, 30 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
+"update": 0,
+"values": [ Color( 0.952941, 0.952941, 0.952941, 1 ), Color( 0.952941, 0.952941, 0.952941, 1 ), Color( 0.266667, 0.266667, 0.266667, 1 ) ]
+}
+tracks/1/type = "value"
+tracks/1/path = NodePath("ColorRect2:color")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/keys = {
+"times": PoolRealArray( 0, 5.9, 30 ),
+"transitions": PoolRealArray( 1, 1, 1 ),
+"update": 0,
+"values": [ Color( 0.952941, 0.952941, 0.952941, 1 ), Color( 0.952941, 0.952941, 0.952941, 1 ), Color( 0.266667, 0.266667, 0.266667, 1 ) ]
+}
+
 [node name="Game" type="Node2D"]
 script = SubResource( 1 )
+
+[node name="ColorRect" type="ColorRect" parent="."]
+margin_left = 1066.79
+margin_top = -3041.42
+margin_right = 41869.8
+margin_bottom = 29638.6
+color = Color( 0.952941, 0.952941, 0.952941, 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="ColorRect2" type="ColorRect" parent="."]
+margin_left = -40789.2
+margin_top = -10823.7
+margin_right = 13.8047
+margin_bottom = 21856.3
+color = Color( 0.952941, 0.952941, 0.952941, 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [node name="left_border" type="Line2D" parent="."]
 position = Vector2( 16, -3246.82 )
@@ -720,7 +827,27 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
+[node name="Leaderboard" type="Button" parent="UI/Start"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = 353.323
+margin_top = 161.0
+margin_right = 508.323
+margin_bottom = 306.0
+custom_styles/hover = SubResource( 25 )
+custom_styles/pressed = SubResource( 26 )
+custom_styles/normal = SubResource( 24 )
+icon = ExtResource( 7 )
+expand_icon = true
+script = SubResource( 29 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
 [node name="Login" type="Button" parent="UI/Start"]
+visible = false
 anchor_right = 1.0
 margin_bottom = 105.0
 custom_styles/hover = SubResource( 19 )
@@ -795,16 +922,6 @@ __meta__ = {
 autoplay = "New Anim"
 "anims/New Anim" = SubResource( 9 )
 anims/RESET = SubResource( 13 )
-
-[node name="Button" type="Button" parent="UI/Start"]
-visible = false
-anchor_left = 1.0
-anchor_top = 0.5
-anchor_right = 1.0
-anchor_bottom = 0.5
-margin_left = -184.0
-margin_top = 134.159
-margin_bottom = 306.159
 
 [node name="InGame" type="Control" parent="UI"]
 visible = false
@@ -960,3 +1077,10 @@ anims/start = SubResource( 16 )
 [node name="screenshooter" type="Node2D" parent="."]
 visible = false
 script = SubResource( 10 )
+
+[node name="reload_fix" type="Node" parent="."]
+pause_mode = 2
+script = SubResource( 23 )
+
+[node name="conc" type="AnimationPlayer" parent="."]
+anims/conc = SubResource( 28 )
